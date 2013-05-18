@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy
+import math
 
 def getColumns(rows, indices, fs = None, printError = False):
 	l = len(indices)
@@ -103,6 +104,48 @@ class Quadratic(Discriminator):
 		d1 = MahalanobisD(x, self.mean1, self.SI1)
 		return 0 if d0 < d1 else 1
 
+class Gauss(Discriminator):
+	def train(self, x0, x1):
+		self.mean0 = mean(x0)
+		self.mean1 = mean(x1)
+		S0 = covariance(x0)
+		self.SI0 = S0.I
+		self.d0 = numpy.linalg.det(S0) ** 0.5
+		S1 = covariance(x1)
+		self.SI1 = S1.I
+		self.d1 = numpy.linalg.det(S1) ** 0.5
+		dim, _ = x0.shape
+		self.k = (2. * math.pi)**(-dim / 2.)
+	def do(self, x):
+		d0 = MahalanobisD(x, self.mean0, self.SI0)
+		d1 = MahalanobisD(x, self.mean1, self.SI1)
+		p0 = self.k * math.exp(-d0 / 0.5) / self.d0
+		p1 = self.k * math.exp(-d1 / 0.5) / self.d1
+		return 0 if p0 > p1 else 1
+
+class BayseGauss(Discriminator):
+	def train(self, x0, x1):
+		self.mean0 = mean(x0)
+		self.mean1 = mean(x1)
+		S0 = covariance(x0)
+		self.SI0 = S0.I
+		self.d0 = numpy.linalg.det(S0) ** 0.5
+		S1 = covariance(x1)
+		self.SI1 = S1.I
+		self.d1 = numpy.linalg.det(S1) ** 0.5
+		dim, _ = x0.shape
+		self.k = (2. * math.pi)**(-dim / 2.)
+		_, c0 = x0.shape
+		_, c1 = x1.shape
+		self.p0 = float(c0) / (c0 + c1)
+		self.p1 = 1. - self.p0
+	def do(self, x):
+		d0 = MahalanobisD(x, self.mean0, self.SI0)
+		d1 = MahalanobisD(x, self.mean1, self.SI1)
+		p0 = self.k * math.exp(-d0 / 0.5) / self.d0 * self.p0
+		p1 = self.k * math.exp(-d1 / 0.5) / self.d1 * self.p1
+		return 0 if p0 > p1 else 1
+
 def crossValidation(x0, x1, discriminator, bin = 1):
 	success = 0
 	false = 0
@@ -135,11 +178,11 @@ def crossValidation(x0, x1, discriminator, bin = 1):
 if __name__ == '__main__':
 	import csv
 	rows = list(csv.reader(open('../csv/train.csv')))
-	x, e = M.getColumns(rows, (0, 3, (int, lambda x: 1 if x=='male' else 0)))
-	print(M.count(x))
-	x, e = M.getColumns(rows, (0, 1, 3, 4, 5, 6), (int, float, lambda x: 1 if x=='male' else 0, float, float, float))
+	x, e = getColumns(rows, (0, 3, (int, lambda x: 1 if x=='male' else 0)))
+	print(count(x))
+	x, e = getColumns(rows, (0, 1, 3, 4, 5, 6), (int, float, lambda x: 1 if x=='male' else 0, float, float, float))
 	x0, x1 = split(x, 0)
 	fisher = Fisher(x0, x1)
 	fisher.do(numpy.matrix((1, 0, 38)).T)
-	CV(x0, x1, Fisher)
+	crossValidation(x0, x1, Fisher)
 
