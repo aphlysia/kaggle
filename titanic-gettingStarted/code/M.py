@@ -103,6 +103,35 @@ class Quadratic(Discriminator):
 		d1 = MahalanobisD(x, self.mean1, self.SI1)
 		return 0 if d0 < d1 else 1
 
+def CV(x0, x1, discriminator, bin = 1):
+	success = 0
+	false = 0
+	r, c = x0.shape
+	for i in range(0, c, bin):
+		_x0 = numpy.hstack((x0[:,0:i], x0[:,i+bin:]))
+		d = discriminator(_x0, x1)
+		for j in range(bin):
+			try:
+				if d.do(x0[:,i+j]) == 0:
+					success += 1
+				else:
+					false += 1
+			except IndexError:
+				pass
+	r, c = x1.shape
+	for i in range(0, c, bin):
+		_x1 = numpy.hstack((x1[:,0:i], x1[:,i+bin:]))
+		d = discriminator(x0, _x1)
+		for j in range(bin):
+			try:
+				if d.do(x1[:,i+j]) == 1:
+					success += 1
+				else:
+					false += 1
+			except IndexError:
+				pass
+	return success, false
+
 if __name__ == '__main__':
 	import csv
 	rows = list(csv.reader(open('../csv/train.csv')))
@@ -112,4 +141,5 @@ if __name__ == '__main__':
 	x0, x1 = split(x, 0)
 	fisher = Fisher(x0, x1)
 	fisher.do(numpy.matrix((1, 0, 38)).T)
+	CV(x0, x1, Fisher)
 
