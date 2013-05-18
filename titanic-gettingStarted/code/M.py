@@ -103,7 +103,7 @@ class Quadratic(Discriminator):
 		d1 = MahalanobisD(x, self.mean1, self.SI1)
 		return 0 if d0 < d1 else 1
 
-def CV(x0, x1, discriminator, bin = 1):
+def crossValidation(x0, x1, discriminator, bin = 1):
 	success = 0
 	false = 0
 	r, c = x0.shape
