@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import numpy
+import numpy as np
 import math
 
 def getColumns(rows, indices, fs = None, printError = False):
@@ -30,19 +30,19 @@ def count(xs):
 		c[key] = c.get(key, 0) + 1
 	return c
 
-def split(x, class0):
+def split(x, y, isClass0):
 	'''
 	split x into class0 and class1
 	'''
-	x = numpy.matrix(x)
+	x = np.matrix(x)
 	r, c = x.shape
 	x0 = None
 	x1 = None
 	for i in range(c):
-		if x[0,i] == class0:
-			x0 = x[1:,i] if x0 is None else numpy.hstack((x0, x[1:,i]))
+		if isClass0(y[0,i]):
+			x0 = x[:,i] if x0 is None else np.hstack((x0, x[:,i]))
 		else:
-			x1 = x[1:,i] if x1 is None else numpy.hstack((x1, x[1:,i]))
+			x1 = x[:,i] if x1 is None else np.hstack((x1, x[:,i]))
 	return x0, x1
 
 def mean(x):
@@ -53,13 +53,13 @@ def mean(x):
 	r, c = x.shape
 	for i in range(r):
 		_x.append(x[i].mean())
-	return numpy.matrix(_x, float).T
+	return np.matrix(_x, float).T
 
 def covariance(x):
 	'''
 	x[i,j] is the i-th elements of the x at the j trial
 	'''
-	a = numpy.matrix(x, float)
+	a = np.matrix(x, float)
 	r, c = a.shape
 	for i in range(r):
 		a[i] -= a[i].mean()
@@ -110,10 +110,10 @@ class Gauss(Discriminator):
 		self.mean1 = mean(x1)
 		S0 = covariance(x0)
 		self.SI0 = S0.I
-		self.d0 = numpy.linalg.det(S0) ** 0.5
+		self.d0 = np.linalg.det(S0) ** 0.5
 		S1 = covariance(x1)
 		self.SI1 = S1.I
-		self.d1 = numpy.linalg.det(S1) ** 0.5
+		self.d1 = np.linalg.det(S1) ** 0.5
 		dim, _ = x0.shape
 		self.k = (2. * math.pi)**(-dim / 2.)
 	def do(self, x):
@@ -129,10 +129,10 @@ class BayseGauss(Discriminator):
 		self.mean1 = mean(x1)
 		S0 = covariance(x0)
 		self.SI0 = S0.I
-		self.d0 = numpy.linalg.det(S0) ** 0.5
+		self.d0 = np.linalg.det(S0) ** 0.5
 		S1 = covariance(x1)
 		self.SI1 = S1.I
-		self.d1 = numpy.linalg.det(S1) ** 0.5
+		self.d1 = np.linalg.det(S1) ** 0.5
 		dim, _ = x0.shape
 		self.k = (2. * math.pi)**(-dim / 2.)
 		_, c0 = x0.shape
@@ -151,7 +151,7 @@ def crossValidation(x0, x1, discriminator, bin = 1):
 	false = 0
 	r, c = x0.shape
 	for i in range(0, c, bin):
-		_x0 = numpy.hstack((x0[:,0:i], x0[:,i+bin:]))
+		_x0 = np.hstack((x0[:,0:i], x0[:,i+bin:]))
 		d = discriminator(_x0, x1)
 		for j in range(bin):
 			try:
@@ -163,7 +163,7 @@ def crossValidation(x0, x1, discriminator, bin = 1):
 				pass
 	r, c = x1.shape
 	for i in range(0, c, bin):
-		_x1 = numpy.hstack((x1[:,0:i], x1[:,i+bin:]))
+		_x1 = np.hstack((x1[:,0:i], x1[:,i+bin:]))
 		d = discriminator(x0, _x1)
 		for j in range(bin):
 			try:
@@ -174,15 +174,4 @@ def crossValidation(x0, x1, discriminator, bin = 1):
 			except IndexError:
 				pass
 	return success, false
-
-if __name__ == '__main__':
-	import csv
-	rows = list(csv.reader(open('../csv/train.csv')))
-	x, e = getColumns(rows, (0, 3, (int, lambda x: 1 if x=='male' else 0)))
-	print(count(x))
-	x, e = getColumns(rows, (0, 1, 3, 4, 5, 6), (int, float, lambda x: 1 if x=='male' else 0, float, float, float))
-	x0, x1 = split(x, 0)
-	fisher = Fisher(x0, x1)
-	fisher.do(numpy.matrix((1, 0, 38)).T)
-	crossValidation(x0, x1, Fisher)
 
