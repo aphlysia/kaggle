@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import math
+import random
 
 def getColumns(rows, indices, fs = None, printError = False):
 	l = len(indices)
@@ -148,30 +149,32 @@ class BayseGauss(Discriminator):
 
 def crossValidation(x0, x1, discriminator, bin = 1):
 	success = 0
-	false = 0
-	r, c = x0.shape
-	for i in range(0, c, bin):
-		_x0 = np.hstack((x0[:,0:i], x0[:,i+bin:]))
-		d = discriminator(_x0, x1)
-		for j in range(bin):
-			try:
-				if d.do(x0[:,i+j]) == 0:
-					success += 1
-				else:
-					false += 1
-			except IndexError:
-				pass
-	r, c = x1.shape
-	for i in range(0, c, bin):
-		_x1 = np.hstack((x1[:,0:i], x1[:,i+bin:]))
-		d = discriminator(x0, _x1)
-		for j in range(bin):
-			try:
-				if d.do(x1[:,i+j]) == 1:
-					success += 1
-				else:
-					false += 1
-			except IndexError:
-				pass
-	return success, false
+	failure = 0
+	r, c0 = x0.shape
+	r, c1 = x1.shape
+	l = [0] * c0 + [1] * c1
+	random.shuffle(l)
+	l0 = 0
+	l1 = 0
+	for i in range(0, c0 + c1, bin):
+		r0 = l0 + l[i:i+bin].count(0)
+		r1 = l1 + l[i:i+bin].count(1)
+		_x0 = np.hstack((x0[:,:l0], x0[:,r0:]))
+		_x1 = np.hstack((x1[:,:l1], x1[:,r1:]))
+		#_x0 = x0[:,120:139]
+		#_x1 = x1[:,120:139]
+		d = discriminator(_x0, _x1)
+		for j in range(l0, r0):
+			if d.do(x0[:,j]) == 0:
+				success += 1
+			else:
+				failure += 1
+		for j in range(l1, r1):
+			if d.do(x1[:,j]) == 1:
+				success += 1
+			else:
+				failure += 1
+		l0 = r0
+		l1 = r1
+	return success, failure 
 
