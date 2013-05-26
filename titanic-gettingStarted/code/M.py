@@ -190,4 +190,12 @@ class PCA:
 		self.eigenvectors = v.T
 	def do(self, x):
 		return self.eigenvectors * (x - self.mean)
-		
+	def plot(self, x, c = 'b'):
+		import matplotlib
+		import matplotlib.pyplot as plt
+		v = self.do(x)
+		fig = plt.figure()
+		ax = fig.add_subplot(111)
+		ax.scatter(list(np.array(v[0])[0]), list(np.array(v[1])[0]), c = c)
+		plt.show()
+
