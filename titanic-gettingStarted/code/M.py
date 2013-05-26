@@ -178,3 +178,16 @@ def crossValidation(x0, x1, discriminator, bin = 1):
 		l1 = r1
 	return success, failure 
 
+class PCA:
+	def __init__(self, x = None):
+		if x is not None:
+			self.train(x)
+	def train(self, x):
+		self.mean = mean(x)
+		cov = covariance(x)
+		w, v = np.linalg.eig(cov)
+		self.eigenvalues = w
+		self.eigenvectors = v.T
+	def do(self, x):
+		return self.eigenvectors * (x - self.mean)
+		
